@@ -34,6 +34,7 @@ import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.BookMeta;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -79,6 +80,7 @@ public class Market extends JavaPlugin implements Listener {
     private ItemIndex items;
     private ChatComponent chat;
     private Updater updater;
+    private boolean mcpcp = false;
     String prefix;
 
     public void onEnable() {
@@ -160,6 +162,11 @@ public class Market extends JavaPlugin implements Listener {
                 log.info("ProtocolLib was found but GM only supports ProtocolLib for 1.7 and above.");
             }
         }
+        try {
+            Class.forName("me.dasfaust.GlobalMarket.MarketCompanion");
+            log.info("Market Forge mod detected!");
+            mcpcp = true;
+        } catch(Exception ignored) {}
         config = new ConfigHandler(this);
         locale = new LocaleHandler(config);
         prefix = locale.get("cmd.prefix");
@@ -258,6 +265,10 @@ public class Market extends JavaPlugin implements Listener {
 
     public InterfaceHandler getInterfaceHandler() {
         return interfaceHandler;
+    }
+
+    public boolean mcpcpSupportEnabled() {
+        return mcpcp;
     }
 
     public boolean useProtocolLib() {
@@ -492,8 +503,14 @@ public class Market extends JavaPlugin implements Listener {
         boolean isWhitelist = getConfig().getBoolean("blacklist.as_whitelist");
         if (getConfig().isSet("blacklist.item_id." + item.getTypeId())) {
             String path = "blacklist.item_id." + item.getTypeId();
-            if (getConfig().getInt(path) == -1 || getConfig().getInt(path) == item.getData().getData()) {
-                return isWhitelist ? false : true;
+            if (getConfig().isList(path)) {
+                if (getConfig().getIntegerList(path).contains(new Integer(item.getDurability()))) {
+                    return isWhitelist ? false : true;
+                }
+            } else {
+                if (getConfig().getInt(path) == -1 || getConfig().getInt(path) == item.getDurability()) {
+                    return isWhitelist ? false : true;
+                }
             }
         }
         if (item.hasItemMeta()) {
@@ -556,6 +573,9 @@ public class Market extends JavaPlugin implements Listener {
     }
 
     public String getItemName(ItemStack item) {
+        if (mcpcp) {
+            return ((me.dasfaust.GlobalMarket.WrappedItemStack) item).getItemName();
+        }
         String itemName = items.getItemName(item);
         if (item.getAmount() > 1) {
             return locale.get("friendly_item_name_with_amount", item.getAmount(), itemName);

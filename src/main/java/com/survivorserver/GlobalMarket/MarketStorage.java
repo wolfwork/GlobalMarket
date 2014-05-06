@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeSet;
 
+import com.survivorserver.GlobalMarket.Lib.MCPCPHelper;
 import org.bukkit.Material;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -141,9 +142,13 @@ public class MarketStorage {
             int itemId = -1;
             try {
                 itemId = res.getInt(1);
-                YamlConfiguration conf = new YamlConfiguration();
-                conf.loadFromString(res.getString(2));
-                item = conf.getItemStack("item");
+                if (market.mcpcpSupportEnabled()) {
+                    item = itemStackFromString(res.getString(2));
+                } else {
+                    YamlConfiguration conf = new YamlConfiguration();
+                    conf.loadFromString(res.getString(2));
+                    item = conf.getItemStack("item");
+                }
             } catch(Throwable e) {
                 if (e instanceof InvalidConfigurationException) {
                     // Can sometimes happen if there are crazy characters in an item's lore
@@ -412,28 +417,42 @@ public class MarketStorage {
     }
 
     public static String itemStackToString(ItemStack item) {
-        YamlConfiguration conf = new YamlConfiguration();
-        ItemStack toSave = item.clone();
-        toSave.setAmount(1);
-        conf.set("item", toSave);
-        return conf.saveToString();
+        if (Market.getMarket().mcpcpSupportEnabled()) {
+            return MCPCPHelper.serialize(item);
+        } else {
+            YamlConfiguration conf = new YamlConfiguration();
+            ItemStack toSave = item.clone();
+            toSave.setAmount(1);
+            conf.set("item", toSave);
+            return conf.saveToString();
+        }
     }
 
     public static ItemStack itemStackFromString(String item) throws InvalidConfigurationException {
-        YamlConfiguration conf = new YamlConfiguration();
-        conf.loadFromString(item);
-        return conf.getItemStack("item");
+        if (Market.getMarket().mcpcpSupportEnabled()) {
+            return MCPCPHelper.deserialize(item);
+        } else {
+            YamlConfiguration conf = new YamlConfiguration();
+            conf.loadFromString(item);
+            return conf.getItemStack("item");
+        }
     }
 
     public static ItemStack itemStackFromString(String item, int amount) {
-        YamlConfiguration conf = new YamlConfiguration();
-        try {
-            conf.loadFromString(item);
-            ItemStack itemStack = conf.getItemStack("item");
-            itemStack.setAmount(amount);
-            return itemStack;
-        } catch (InvalidConfigurationException e) {
-            e.printStackTrace();
+        if (Market.getMarket().mcpcpSupportEnabled()) {
+            ItemStack stack = MCPCPHelper.deserialize(item);
+            stack.setAmount(amount);
+            return stack;
+        } else {
+            YamlConfiguration conf = new YamlConfiguration();
+            try {
+                conf.loadFromString(item);
+                ItemStack itemStack = conf.getItemStack("item");
+                itemStack.setAmount(amount);
+                return itemStack;
+            } catch (InvalidConfigurationException e) {
+                e.printStackTrace();
+            }
         }
         return null;
     }
@@ -762,7 +781,7 @@ public class MarketStorage {
 
     public int getNumListingsFor(String name, String world) {
         int amount = 0;
-        for (Listing listing : market.enableMultiworld() ? getListingsForWorld(world) : listings.values()) {
+        for (Listing listing : market.enableMultiworld() ? getListingsForWorld(world) : new ArrayList<Listing>(condensedListings)) {
             if (listing.getSeller().equalsIgnoreCase(name)) {
                 amount++;
             }
@@ -837,6 +856,9 @@ public class MarketStorage {
                         market.getLocale().get("transaction_log.amount_recieved", amount);
         meta.setPages(logStr);
         book.setItemMeta(meta);
+        if (market.mcpcpSupportEnabled()) {
+            book = MCPCPHelper.wrapItemStack(book);
+        }
         createMail(player, buyer, book, amount, world);
     }
 
