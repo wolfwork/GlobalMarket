@@ -1,5 +1,6 @@
 package com.survivorserver.GlobalMarket;
 
+import com.survivorserver.GlobalMarket.Lib.MCPCPHelper;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event.Result;
@@ -13,10 +14,12 @@ import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.inventory.InventoryType.SlotType;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
 import com.survivorserver.GlobalMarket.Interface.MarketInterface;
 import com.survivorserver.GlobalMarket.Interface.MarketItem;
+import org.bukkit.inventory.PlayerInventory;
 
 public class InterfaceListener implements Listener {
 
@@ -38,12 +41,13 @@ public class InterfaceListener implements Listener {
         //ItemStack curItem = event.getCurrentItem();
         int rawSlot = event.getRawSlot();
         int slot = event.getSlot();
-        // Verify we're in a Market interface
+
+        int lastTopSlot = (event.getInventory().getSize() < 54 ? 26 : 53);
         if (viewer != null && event.getInventory().getName().equalsIgnoreCase(viewer.getGui().getName())) {
 
-            int lastTopSlot = (event.getInventory().getSize() < 54 ? 26 : 53);
             if (rawSlot <= lastTopSlot && rawSlot > -1) {
                 // Determine if a click was within the top portion of the inventory
+
                 event.setCancelled(true);
                 event.setResult(Result.DENY);
 
@@ -97,6 +101,12 @@ public class InterfaceListener implements Listener {
                     }
                     inter.onUnboundClick(market, handler, viewer, rawSlot, event);
                 }
+            } else if (isMarketItem(event.getCurrentItem())) {
+                event.setCancelled(true);
+                event.setResult(Result.DENY);
+                event.getCurrentItem().setType(Material.AIR);
+                event.getCursor().setType(Material.AIR);
+                event.getInventory().remove(event.getCurrentItem());
             } else if (event.getAction() == InventoryAction.MOVE_TO_OTHER_INVENTORY
                     || (event.getAction() == InventoryAction.PLACE_ALL
                     || event.getAction() == InventoryAction.PLACE_ONE
@@ -115,6 +125,7 @@ public class InterfaceListener implements Listener {
                 event.setResult(Result.DENY);
                 event.getCurrentItem().setType(Material.AIR);
                 event.getCursor().setType(Material.AIR);
+                event.getInventory().remove(event.getCurrentItem());
             }
             if (event.getInventory().getType() == InventoryType.MERCHANT) {
                 ItemStack trading = event.getCursor();
@@ -144,6 +155,10 @@ public class InterfaceListener implements Listener {
                     event.setCancelled(true);
                 }
             }
+        } else if (isMarketItem(event.getCursor())) {
+            event.setCancelled(true);
+            event.setResult(Result.DENY);
+            event.setCursor(new ItemStack(Material.AIR));
         }
     }
 
@@ -166,23 +181,32 @@ public class InterfaceListener implements Listener {
             if (market.useProtocolLib()) {
                 market.getPacket().getMessage().clearPlayer((Player) event.getPlayer());
             }
+            cleanInventory(event.getPlayer().getInventory());
         }
-        // Ugly fix for item duping via shift+click and esc. Oh well, we'll have to wait until Bukkit fixes this
-        ItemStack[] items = event.getPlayer().getInventory().getContents();
+    }
+
+    public static void cleanInventory(Inventory inv) {
+        ItemStack[] items = inv.getContents();
+        ItemStack[] clone = items.clone();
         for (int i = 0; i < items.length; i++) {
             if (items[i] != null) {
                 if (isMarketItem(items[i])) {
-                    event.getPlayer().getInventory().remove(items[i]);
+                    clone[i] = null;
                 }
             }
         }
-        items = event.getPlayer().getInventory().getArmorContents();
-        for (int i = 0; i < items.length; i++) {
-            if (items[i] != null) {
-                if (isMarketItem(items[i])) {
-                    event.getPlayer().getInventory().remove(items[i]);
+        inv.setContents(clone);
+        if (inv instanceof PlayerInventory) {
+            items = ((PlayerInventory) inv).getArmorContents();
+            clone = items.clone();
+            for (int i = 0; i < items.length; i++) {
+                if (items[i] != null) {
+                    if (isMarketItem(items[i])) {
+                        clone[i] = null;
+                    }
                 }
             }
+            ((PlayerInventory) inv).setArmorContents(clone);
         }
     }
 
@@ -192,21 +216,17 @@ public class InterfaceListener implements Listener {
         ItemStack item = event.getEntity().getItemStack();
         if (item != null && isMarketItem(item)) {
             event.getEntity().remove();
+            event.setCancelled(true);
         }
     }
 
-    public boolean isMarketItem(ItemStack item) {
+    public static boolean isMarketItem(ItemStack item) {
         if (item == null) {
             return false;
         }
         if (!item.hasItemMeta()) {
             return false;
         }
-        for (MarketInterface in : handler.getInterfaces()) {
-            if (in.identifyItem(item.getItemMeta())) {
-                return true;
-            }
-        }
-        return false;
+        return item.getItemMeta().hasLore() ? item.getItemMeta().getLore().contains(InterfaceHandler.ITEM_UUID) : false;
     }
 }

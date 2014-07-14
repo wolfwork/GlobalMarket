@@ -340,7 +340,7 @@ public class ListingsInterface extends MarketInterface {
         }
         int maxMail = market.getMaxMail(player);
         if (maxMail > 0) {
-            if (market.getStorage().getNumMail(player.getName(), player.getWorld().getName()) >= maxMail) {
+            if (market.getStorage().getNumMail(player.getName(), player.getWorld().getName(), true) >= maxMail) {
                 viewer.setCreateMessage(locale.get("full_mailbox"));
                 market.getInterfaceHandler().refreshFunctionBar(viewer);
                 return;
@@ -365,7 +365,7 @@ public class ListingsInterface extends MarketInterface {
                             public void run() {
                                 if (cancelled) {
                                     // The player has disconnected
-                                    market.getInterfaceHandler().purgeViewer(player.getName());
+                                    market.getInterfaceHandler().purgeViewer(player);
                                     return;
                                 }
                                 market.getInterfaceHandler().unsuspendViewer(player, viewer);

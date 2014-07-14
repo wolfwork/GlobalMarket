@@ -92,14 +92,14 @@ public class SendCommand extends SubCommand {
             args[1] = off.getName();
             int maxMail = market.getMaxMail(args[1], player.getWorld().getName());
             if (maxMail > 0) {
-                if (market.getStorage().getNumMail(args[1], player.getWorld().getName()) >= maxMail) {
+                if (market.getStorage().getNumMail(args[1], player.getWorld().getName(), true) >= maxMail) {
                     player.sendMessage(ChatColor.RED + locale.get("full_mailbox_other", args[1]));
                     return true;
                 }
             }
             ItemStack toList = player.getItemInHand().clone();
             if (market.mcpcpSupportEnabled()) {
-                toList = MCPCPHelper.wrapItemStack(player.getInventory(), player.getInventory().getHeldItemSlot());
+                toList = MCPCPHelper.wrapItemStack(player.getInventory(), player.getInventory().getHeldItemSlot()).clone();
             }
             if (market.blacklistMail()) {
                 if (market.itemBlacklisted(toList)) {
@@ -127,7 +127,7 @@ public class SendCommand extends SubCommand {
                 if (player.getItemInHand().getAmount() == amount) {
                     player.setItemInHand(new ItemStack(Material.AIR));
                 } else {
-                    player.getItemInHand().setAmount(player.getItemInHand().getAmount() - amount);
+                    player.getItemInHand().setAmount(toList.getAmount() - amount);
                 }
                 toList.setAmount(amount);
                 if (mailTime > 0) {

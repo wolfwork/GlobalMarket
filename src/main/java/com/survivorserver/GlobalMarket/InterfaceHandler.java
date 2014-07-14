@@ -16,6 +16,7 @@ import org.bukkit.inventory.ItemStack;
 import com.survivorserver.GlobalMarket.Interface.Handler;
 import com.survivorserver.GlobalMarket.Interface.MarketInterface;
 import com.survivorserver.GlobalMarket.Interface.MarketItem;
+import org.bukkit.inventory.meta.ItemMeta;
 
 public class InterfaceHandler {
 
@@ -25,6 +26,7 @@ public class InterfaceHandler {
     List<InterfaceViewer> suspended;
     List<MarketInterface> interfaces;
     List<Handler> handlers;
+    public static String ITEM_UUID = ChatColor.translateAlternateColorCodes('&', "&d&3&4&6");
 
     public InterfaceHandler(Market market, MarketStorage storage) {
         this.market = market;
@@ -109,7 +111,8 @@ public class InterfaceHandler {
         return null;
     }
 
-    public void purgeViewer(String name) {
+    public void purgeViewer(Player player) {
+        String name = player.getName();
         InterfaceViewer viewer = findViewer(name);
         if (viewer != null) {
             viewers.remove(viewer);
@@ -118,6 +121,7 @@ public class InterfaceHandler {
         if (viewer != null) {
             suspended.remove(viewer);
         }
+        InterfaceListener.cleanInventory(player.getInventory());
     }
 
     public void removeViewer(InterfaceViewer viewer) {
@@ -186,10 +190,16 @@ public class InterfaceHandler {
                 }
             }
         }
+        ItemStack s = mInterface.prepareItem(item, viewer, viewer.getPage(), slot, left, shift);
+        ItemMeta meta = s.getItemMeta();
+        List<String> l = meta.hasLore() ? meta.getLore() : new ArrayList<String>();
+        l.add(0, ITEM_UUID);
+        meta.setLore(l);
+        s.setItemMeta(meta);
         if (market.mcpcpSupportEnabled()) {
-            MCPCPHelper.addItemToInventory(mInterface.prepareItem(item, viewer, viewer.getPage(), slot, left, shift), inv, slot);
+            MCPCPHelper.addItemToInventory(s, inv, slot);
         } else {
-            inv.setItem(slot, mInterface.prepareItem(item, viewer, viewer.getPage(), slot, left, shift));
+            inv.setItem(slot, s);
         }
     }
 
@@ -260,6 +270,16 @@ public class InterfaceHandler {
         boolean prevPage = viewer.getPage() > 1;
 
         mInterface.buildFunctionBar(market, this, viewer, invContents, prevPage, nextPage);
+
+        for (ItemStack s : invContents) {
+            if (s != null) {
+                ItemMeta meta = s.getItemMeta();
+                List<String> l = meta.hasLore() ? meta.getLore() : new ArrayList<String>();
+                l.add(0, ITEM_UUID);
+                meta.setLore(l);
+                s.setItemMeta(meta);
+            }
+        }
 
         if (market.mcpcpSupportEnabled()) {
             MCPCPHelper.setInventoryContents(inv, invContents);
