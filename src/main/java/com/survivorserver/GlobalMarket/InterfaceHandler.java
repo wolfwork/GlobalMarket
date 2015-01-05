@@ -8,7 +8,7 @@ import java.util.Map;
 import com.survivorserver.GlobalMarket.Interface.IHandler;
 import com.survivorserver.GlobalMarket.Interface.IMarketItem;
 import com.survivorserver.GlobalMarket.Interface.IMenu;
-import com.survivorserver.GlobalMarket.Lib.MCPCPHelper;
+import com.survivorserver.GlobalMarket.Lib.Cauldron.CauldronHelper;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -144,7 +144,7 @@ public class InterfaceHandler {
         suspended.remove(viewer);
         IMenu inter = viewer.getInterface();
         InterfaceViewer newViewer = addViewer(player,
-                market.getServer().createInventory(player, inter.getSize(), market.enableMultiworld() ?  inter.getTitle() + " (" + player.getWorld().getName() + ")" :  inter.getTitle()),
+                market.getServer().createInventory(player, inter.getSize(), inter.getTitle()),
                 inter);
         newViewer.setPage(viewer.getPage());
         newViewer.setSearch(viewer.getSearch());
@@ -160,7 +160,7 @@ public class InterfaceHandler {
     public void openInterface(Player player, String search, String marketInterface) {
         IMenu mInterface = getInterface(marketInterface);
         InterfaceViewer viewer = addViewer(player,
-                market.getServer().createInventory(player, mInterface.getSize(), market.enableMultiworld() ?  mInterface.getTitle() + " (" + player.getWorld().getName() + ")" :  mInterface.getTitle()),
+                market.getServer().createInventory(player, mInterface.getSize(), mInterface.getTitle()),
                 mInterface);
         viewer.setSearch(search);
         refreshInterface(viewer);
@@ -197,7 +197,7 @@ public class InterfaceHandler {
         meta.setLore(l);
         s.setItemMeta(meta);
         if (market.mcpcpSupportEnabled()) {
-            MCPCPHelper.addItemToInventory(s, inv, slot);
+            CauldronHelper.addItemToInventory(s, inv, slot);
         } else {
             inv.setItem(slot, s);
         }
@@ -279,7 +279,7 @@ public class InterfaceHandler {
         }
 
         if (market.mcpcpSupportEnabled()) {
-            MCPCPHelper.setInventoryContents(inv, invContents);
+            CauldronHelper.setInventoryContents(inv, invContents);
         } else {
             inv.setContents(invContents);
         }

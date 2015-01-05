@@ -2,7 +2,7 @@ package com.survivorserver.GlobalMarket;
 
 import java.util.Arrays;
 
-import com.survivorserver.GlobalMarket.Lib.MCPCPHelper;
+import com.survivorserver.GlobalMarket.Lib.Cauldron.CauldronHelper;
 import net.milkbowl.vault.economy.Economy;
 import net.milkbowl.vault.economy.EconomyResponse;
 import net.milkbowl.vault.economy.EconomyResponse.ResponseType;
@@ -240,39 +240,14 @@ public class MarketCore {
         ItemStack item = storage.getItem(mail.getItemId(), mail.getAmount());
         if (transactionLog) {
             ItemMeta meta = item.getItemMeta();
-            meta.setLore(Arrays.asList(new String[] {market.getLocale().get("not_tradable")}));
+            meta.setLore(Arrays.asList(new String[] {ChatColor.GRAY + market.getLocale().get("transaction_log.unsignable")}));
             item.setItemMeta(meta);
         }
         if (market.mcpcpSupportEnabled()) {
-            MCPCPHelper.addItemToInventory(player.getName(), item);
+            CauldronHelper.addItemToInventory(player.getName(), item);
         } else {
             playerInv.addItem(item);
         }
         storage.removeMail(mail.getId());
     }
-
-    /*public void showHistory(Player player) {
-        ItemStack book = new ItemStack(Material.WRITTEN_BOOK);
-        BookMeta meta = (BookMeta) book.getItemMeta();
-        if (meta == null) {
-            meta = (BookMeta) market.getServer().getItemFactory().getItemMeta(book.getType());
-        }
-        meta.setTitle(market.getLocale().get("history.item_name"));
-        meta.setAuthor("Server");
-        Map<String, Long> history = storage.getHistory(player.getName(), 15);
-        List<String> pages = new ArrayList<String>();
-        String pagesStr = market.getLocale().get("history.title", player.getName()) + "\n\n" +
-                        market.getLocale().get("history.total_earned", market.getEcon().format(storage.getEarned(player.getName()))) + "\n" +
-                        market.getLocale().get("history.total_spent", market.getEcon().format(storage.getSpent(player.getName()))) + "\n" +
-                        market.getLocale().get("history.actual_amount_made", market.getEcon().format((storage.getEarned(player.getName()) - storage.getSpent(player.getName()))));
-        pages.add(pagesStr);
-        pages.set(0, pages.get(0).replace("�f", "").replace("�7", "").replace("�6", ""));
-        for (Entry<String, Long> set : history.entrySet()) {
-            Date date = new Date(set.getValue() * 1000);
-            pages.add(set.getKey() + "\n" + market.getLocale().get("history.at_time", date.toString()));
-        }
-        meta.setPages(pages);
-        book.setItemMeta(meta);
-        player.getInventory().addItem(book);
-    }*/
 }

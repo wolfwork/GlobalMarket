@@ -1,9 +1,30 @@
-package com.survivorserver.GlobalMarket.Lib;
+package com.survivorserver.GlobalMarket.Lib.Cauldron;
 
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
-public class MCPCPHelper {
+import java.lang.reflect.Method;
+
+public class CauldronHelper {
+
+    public static String _package = "";
+
+    static {
+        testPkgs();
+    }
+
+    private static void testPkgs() {
+        try {
+            Class.forName("org.bukkit.craftbukkit.v1_7_R4.CraftServer");
+            _package = "v1_7_R4";
+            return;
+        } catch(Exception ignored) {}
+        try {
+            Class.forName("org.bukkit.craftbukkit.v1_6_R3.CraftServer");
+            _package = "v1_6_R3";
+            return;
+        } catch(Exception ignored) {}
+    }
 
     public static ItemStack wrapItemStack(Inventory inv, int slot) {
         me.dasfaust.GlobalMarket.MarketCompanion inst = me.dasfaust.GlobalMarket.MarketCompanion.getInstance();
@@ -54,13 +75,25 @@ public class MCPCPHelper {
         return stack.serializeJSON();
     }
 
-    // TODO: some type of abstraction to support 1.7+
     public static Object getNMSStack(ItemStack item) {
-        return org.bukkit.craftbukkit.v1_6_R3.inventory.CraftItemStack.asNMSCopy(item);
+        try {
+            Class c = Class.forName(String.format("org.bukkit.craftbukkit.%s.inventory.CraftItemStack", _package));
+            Method m = c.getMethod("asNMSCopy", ItemStack.class);
+            return m.invoke(null, item);
+        } catch(Exception e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
-    // TODO: some type of abstraction to support 1.7+
     public static Object getNMSInventory(Inventory inv) {
-        return ((org.bukkit.craftbukkit.v1_6_R3.inventory.CraftInventory) inv).getInventory();
+        try {
+            Class c = Class.forName(String.format("org.bukkit.craftbukkit.%s.inventory.CraftInventory", _package));
+            Method m = c.getMethod("getInventory", null);
+            return m.invoke(inv, null);
+        } catch(Exception e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 }
